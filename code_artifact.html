@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>森活團隊｜請假與差勤管理系統</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans TC & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans TC"', '"Inter"', 'sans-serif'],
+          },
+          colors: {
+            muji: {
+              bg: '#F8F7F4',
+              surface: '#FFFFFF',
+              subtle: '#F1EFEA',
+              border: '#E5E2DC',
+              muted: '#9A958E',
+              text: '#2C2A27',
+              subtext: '#68645E',
+            },
+            sage: {
+              50: '#F2F5F2',
+              100: '#E2EBE4',
+              500: '#5D7A66',
+              600: '#4B6553',
+              700: '#3A4F41',
+            },
+            terra: {
+              50: '#FBF3F0',
+              100: '#F6E2DA',
+              500: '#C56A4E',
+              600: '#A9553B',
+            },
+            slatex: {
+              50: '#F3F5F7',
+              100: '#E4E9EE',
+              600: '#4E6275',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #F8F7F4;
+      color: #2C2A27;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D7D3CA;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #B5B0A6;
+    }
+    .fade-in {
+      animation: fadeIn 0.22s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-sage-100 selection:text-sage-700">
+
+  <!-- ================= 連線錯誤排解橫幅 ================= -->
+  <div id="errorBanner" class="hidden bg-terra-50 border-b border-terra-500/30 px-4 py-3 text-sm text-terra-600">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-start gap-2.5">
+        <i data-lucide="alert-triangle" class="w-5 h-5 shrink-0 mt-0.5 text-terra-500"></i>
+        <div>
+          <p class="font-bold text-terra-600" id="errorBannerTitle">無法連線至 Firebase 雲端資料庫</p>
+          <p class="text-xs text-terra-600/90 mt-0.5 leading-relaxed" id="errorBannerDesc">
+            請確認 Firebase 控制台已完成：(1) Authentication 已啟用「匿名登入」；(2) Firestore 規則已發布為 <code class="bg-white/80 px-1.5 py-0.5 rounded font-mono">allow read, write: if request.auth != null;</code>。
+          </p>
+        </div>
+      </div>
+      <button onclick="location.reload()" class="self-start sm:self-center shrink-0 px-3.5 py-1.5 rounded-xl bg-terra-500 hover:bg-terra-600 text-white text-xs font-medium transition">
+        重新連線
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= 載入中畫面 ================= -->
+  <div id="loadingOverlay" class="fixed inset-0 z-50 bg-muji-bg flex flex-col items-center justify-center p-6">
+    <div class="w-12 h-12 rounded-2xl bg-sage-500 text-white flex items-center justify-center shadow-sm mb-4 animate-pulse">
+      <i data-lucide="leaf" class="w-6 h-6"></i>
+    </div>
+    <p class="text-muji-text font-semibold tracking-wide">正在連線至團隊雲端資料庫...</p>
+    <p id="loadingHint" class="text-muji-muted text-xs mt-1.5">驗證匿名安全連線中</p>
+  </div>
+
+  <!-- ================= 初次選擇身分 Modal ================= -->
+  <div id="welcomeModal" class="hidden fixed inset-0 z-40 bg-muji-text/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-muji-border fade-in">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-sage-100 text-sage-600 flex items-center justify-center">
+          <i data-lucide="user-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-muji-text">選擇您的登入身分</h2>
+          <p class="text-xs text-muji-subtext">系統會記住您的選擇，之後隨時可於右上角切換</p>
+        </div>
+      </div>
+      <div id="welcomeMemberGrid" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+        <!-- Dynamic member buttons -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 頂部導覽列 ================= -->
+  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-muji-border">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <!-- Brand + Live Status -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-sage-500 text-white flex items-center justify-center shadow-sm shrink-0">
+          <i data-lucide="leaf" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-muji-text text-base sm:text-lg leading-tight tracking-tight">森活團隊</h1>
+            <!-- Live Connection Badge -->
+            <span id="connBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/70">
+              <span id="connDot" class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              <span id="connText">連線中</span>
+            </span>
+          </div>
+          <p class="text-[11px] text-muji-muted hidden sm:block">5 人團隊專屬請假與差勤系統</p>
+        </div>
+      </div>
+
+      <!-- Desktop Navigation -->
+      <nav class="hidden md:flex items-center gap-1 bg-muji-subtle p-1 rounded-2xl border border-muji-border/70">
+        <button onclick="switchTab('apply')" data-tab="apply" class="nav-btn px-3.5 py-1.5 rounded-xl text-sm font-medium transition">我要請假</button>
+        <button onclick="switchTab('records')" data-tab="records" class="nav-btn px-3.5 py-1.5 rounded-xl text-sm font-medium transition">我的紀錄</button>
+        <button onclick="switchTab('calendar')" data-tab="calendar" class="nav-btn px-3.5 py-1.5 rounded-xl text-sm font-medium transition">團隊月曆</button>
+        <button onclick="switchTab('approval')" data-tab="approval" id="navApprovalDesk" class="nav-btn hidden px-3.5 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-1.5">
+          主管簽核
+          <span id="pendingBadgeDesk" class="hidden px-1.5 py-0.5 text-[10px] font-bold bg-terra-500 text-white rounded-full leading-none">0</span>
+        </button>
+        <button onclick="switchTab('team')" data-tab="team" id="navTeamDesk" class="nav-btn hidden px-3.5 py-1.5 rounded-xl text-sm font-medium transition">團隊設定</button>
+      </nav>
+
+      <!-- Top-bar User Switcher -->
+      <button onclick="openUserSwitcher()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-muji-subtle hover:bg-muji-border/60 border border-muji-border transition text-left shrink-0">
+        <div id="headerAvatar" class="w-7 h-7 rounded-full bg-sage-500 text-white text-xs font-bold flex items-center justify-center">?</div>
+        <div class="hidden sm:block leading-tight">
+          <div id="headerUserName" class="text-xs font-semibold text-muji-text">未選擇</div>
+          <div id="headerUserRole" class="text-[10px] text-sage-600 font-medium">-</div>
+        </div>
+        <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-muji-muted"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= 主內容區 ================= -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-10">
+
+    <!-- 個人年度額度儀表板卡片 -->
+    <section id="dashboardCards" class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 fade-in">
+      <div class="bg-white rounded-2xl p-5 border border-muji-border shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-medium text-muji-subtext">剩餘特休額度</span>
+          <span class="w-8 h-8 rounded-xl bg-sage-50 text-sage-600 flex items-center justify-center"><i data-lucide="sun" class="w-4 h-4"></i></span>
+        </div>
+        <div class="flex items-baseline gap-1.5">
+          <span id="statRemainDays" class="text-3xl font-bold text-muji-text">0</span>
+          <span class="text-xs text-muji-subtext">天</span>
+          <span id="statRemainHours" class="text-xs text-sage-600 font-medium ml-1">(0 小時)</span>
+        </div>
+        <p id="statQuotaInfo" class="text-[11px] text-muji-muted mt-1.5">年度特休總額 0 天</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-muji-border shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-medium text-muji-subtext">本年度已休總計</span>
+          <span class="w-8 h-8 rounded-xl bg-slatex-50 text-slatex-600 flex items-center justify-center"><i data-lucide="calendar-check" class="w-4 h-4"></i></span>
+        </div>
+        <div class="flex items-baseline gap-1.5">
+          <span id="statUsedDays" class="text-3xl font-bold text-muji-text">0</span>
+          <span class="text-xs text-muji-subtext">天</span>
+          <span id="statUsedHours" class="text-xs text-muji-muted ml-1">(0 小時)</span>
+        </div>
+        <p id="statUsedAnnualSub" class="text-[11px] text-muji-muted mt-1.5">其中已核准特休 0 天</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 border border-muji-border shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-medium text-muji-subtext">待審核假單</span>
+          <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><i data-lucide="clock" class="w-4 h-4"></i></span>
+        </div>
+        <div class="flex items-baseline gap-1.5">
+          <span id="statPendingCount" class="text-3xl font-bold text-muji-text">0</span>
+          <span class="text-xs text-muji-subtext">件</span>
+        </div>
+        <p class="text-[11px] text-muji-muted mt-1.5">送出後即時通知主管簽核</p>
+      </div>
+    </section>
+
+    <!-- ================= TAB 1: 我要請假 ================= -->
+    <section id="tab-apply" class="tab-panel fade-in">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 左側：請假申請表單 -->
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-lg font-bold text-muji-text">填寫請假申請</h2>
+              <p class="text-xs text-muji-subtext mt-0.5">填寫完成後即時同步至雲端，主管可立即簽核</p>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-sage-50 text-sage-700 text-xs font-medium">1 天 = 8 小時</span>
+          </div>
+
+          <form id="leaveForm" class="space-y-5">
+            <!-- 假別 -->
+            <div>
+              <label class="block text-sm font-medium text-muji-text mb-2">假別 <span class="text-terra-500">*</span></label>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                <label class="cursor-pointer">
+                  <input type="radio" name="leaveType" value="特休" checked class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">特休</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="leaveType" value="事假" class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">事假</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="leaveType" value="病假" class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">病假</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="leaveType" value="公假" class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">公假</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="leaveType" value="補休" class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">補休</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="leaveType" value="其他" class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">其他</div>
+                </label>
+              </div>
+            </div>
+
+            <!-- 日期選擇 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-muji-text mb-1.5">開始日期 <span class="text-terra-500">*</span></label>
+                <input type="date" id="startDate" required class="w-full px-4 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-muji-text mb-1.5">結束日期 <span class="text-terra-500">*</span></label>
+                <input type="date" id="endDate" required class="w-full px-4 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition" />
+              </div>
+            </div>
+
+            <!-- 時段與時數 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-muji-text mb-1.5">請假時段</label>
+                <select id="durationMode" class="w-full px-4 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition">
+                  <option value="full">全天（自動排除週六、週日）</option>
+                  <option value="am">上午（4 小時）</option>
+                  <option value="pm">下午（4 小時）</option>
+                  <option value="custom">自訂時數（以 0.5 小時為單位）</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-muji-text mb-1.5">計算請假時數</label>
+                <div class="relative">
+                  <input type="number" id="leaveHours" min="0.5" step="0.5" value="8" readonly class="w-full px-4 py-2.5 rounded-xl border border-muji-border bg-muji-subtle text-muji-text font-semibold focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition" />
+                  <span id="leaveDaysHint" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-muji-subtext font-medium">小時 (1 天)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 職務代理人 -->
+            <div>
+              <label class="block text-sm font-medium text-muji-text mb-1.5">職務代理人 <span class="text-terra-500">*</span></label>
+              <select id="deputySelect" required class="w-full px-4 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition">
+                <option value="">請選擇職務代理人...</option>
+              </select>
+            </div>
+
+            <!-- 請假事由 -->
+            <div>
+              <label class="block text-sm font-medium text-muji-text mb-1.5">請假事由與交接說明 <span class="text-terra-500">*</span></label>
+              <textarea id="leaveReason" rows="3" required placeholder="請簡述請假原因，或備註需請代理人協助的事項..." class="w-full px-4 py-3 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition resize-none"></textarea>
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-3">
+              <button type="button" onclick="resetLeaveForm()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-muji-subtext hover:bg-muji-subtle transition">重設</button>
+              <button type="submit" id="submitLeaveBtn" class="px-6 py-2.5 rounded-xl bg-sage-500 hover:bg-sage-600 text-white text-sm font-medium shadow-sm transition flex items-center gap-2 active:scale-[0.99]">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                送出請假申請
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 右側：近期團隊休假動態 -->
+        <div class="space-y-5">
+          <div class="bg-white rounded-3xl p-6 border border-muji-border shadow-sm">
+            <h3 class="text-sm font-bold text-muji-text flex items-center gap-2 mb-4">
+              <i data-lucide="calendar-clock" class="w-4 h-4 text-sage-600"></i>
+              近期團隊排休動態
+            </h3>
+            <div id="upcomingLeavesList" class="space-y-2.5">
+              <p class="text-xs text-muji-muted text-center py-6">近期無團隊成員請假</p>
+            </div>
+          </div>
+
+          <div class="bg-sage-50/90 rounded-3xl p-6 border border-sage-100">
+            <h3 class="text-sm font-bold text-sage-700 flex items-center gap-2 mb-2">
+              <i data-lucide="info" class="w-4 h-4"></i>
+              請假規則小提醒
+            </h3>
+            <ul class="text-xs text-sage-700/85 space-y-2 leading-relaxed list-disc pl-4">
+              <li>「全天」模式會自動扣除週六與週日，每日以 8 小時計。</li>
+              <li>待審核的假單若需異動，可於「我的紀錄」直接撤回。</li>
+              <li>已核准的「特休」將自動從年度額度中扣除。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 2: 我的紀錄 ================= -->
+    <section id="tab-records" class="tab-panel hidden fade-in">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-muji-text">我的請假紀錄</h2>
+            <p class="text-xs text-muji-subtext mt-0.5">查看歷史申請狀態與主管簽核備註</p>
+          </div>
+          <select id="myStatusFilter" onchange="renderMyRecords()" class="px-3.5 py-2 rounded-xl border border-muji-border text-sm bg-muji-bg/60 focus:outline-none focus:border-sage-500">
+            <option value="all">全部狀態</option>
+            <option value="pending">待審核</option>
+            <option value="approved">已核准</option>
+            <option value="rejected">已駁回</option>
+          </select>
+        </div>
+        <div id="myRecordsContainer" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: 團隊月曆 ================= -->
+    <section id="tab-calendar" class="tab-panel hidden fade-in">
+      <div class="bg-white rounded-3xl p-5 sm:p-8 border border-muji-border shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-muji-text">團隊請假月曆</h2>
+            <p class="text-xs text-muji-subtext mt-0.5">點擊日曆上的請假標籤可檢視詳細內容</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="shiftCalendarMonth(-1)" class="p-2 rounded-xl border border-muji-border hover:bg-muji-subtle transition" aria-label="上個月"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+            <span id="calTitle" class="text-sm font-bold text-muji-text min-w-[110px] text-center">2026年 11月</span>
+            <button onclick="shiftCalendarMonth(1)" class="p-2 rounded-xl border border-muji-border hover:bg-muji-subtle transition" aria-label="下個月"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            <button onclick="jumpCalendarToday()" class="ml-1 px-3 py-2 rounded-xl bg-muji-subtle hover:bg-muji-border/70 text-xs font-medium text-muji-text transition">今天</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-7 gap-1 sm:gap-2 text-center text-xs font-semibold text-muji-muted mb-2">
+          <div class="text-terra-500">日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div class="text-terra-500">六</div>
+        </div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
+
+        <div class="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-muji-border/60 text-xs text-muji-subtext">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-sage-500"></span>已核准</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>待審核</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 4: 主管簽核 ================= -->
+    <section id="tab-approval" class="tab-panel hidden fade-in space-y-6">
+      <!-- 待審核區塊 -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h2 class="text-lg font-bold text-muji-text">待審核假單</h2>
+            <p class="text-xs text-muji-subtext mt-0.5">填寫選填備註後，一鍵核准或駁回同仁申請</p>
+          </div>
+          <span id="pendingHeaderCount" class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold">0 件待處理</span>
+        </div>
+        <div id="pendingApprovalList" class="space-y-3"></div>
+      </div>
+
+      <!-- 團隊歷史紀錄與 CSV 匯出 -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-muji-text">團隊請假總覽與報表匯出</h2>
+            <p class="text-xs text-muji-subtext mt-0.5">依月份與狀態篩選，匯出 UTF-8 Excel 相容 CSV 報表</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="month" id="historyMonthFilter" onchange="renderHistoryList()" class="px-3 py-2 rounded-xl border border-muji-border text-sm bg-muji-bg/60 focus:outline-none focus:border-sage-500" />
+            <select id="historyStatusFilter" onchange="renderHistoryList()" class="px-3 py-2 rounded-xl border border-muji-border text-sm bg-muji-bg/60 focus:outline-none focus:border-sage-500">
+              <option value="all">全部狀態</option>
+              <option value="approved">已核准</option>
+              <option value="pending">待審核</option>
+              <option value="rejected">已駁回</option>
+            </select>
+            <button onclick="exportCSV()" class="px-4 py-2 rounded-xl bg-muji-text hover:bg-muji-subtext text-white text-sm font-medium transition flex items-center gap-2 shadow-sm">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              匯出 Excel 報表
+            </button>
+          </div>
+        </div>
+        <div id="historyLeavesList" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 5: 團隊設定 ================= -->
+    <section id="tab-team" class="tab-panel hidden fade-in">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-muji-text">團隊成員與特休額度設定</h2>
+            <p class="text-xs text-muji-subtext mt-0.5">管理成員姓名、主管/員工權限以及年度特休天數</p>
+          </div>
+          <button onclick="openMemberModal()" class="px-4 py-2.5 rounded-xl bg-sage-500 hover:bg-sage-600 text-white text-sm font-medium transition flex items-center gap-2 shadow-sm self-start sm:self-auto">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            新增成員
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-muji-border text-xs font-semibold text-muji-muted uppercase">
+                <th class="py-3 px-3">姓名</th>
+                <th class="py-3 px-3">角色權限</th>
+                <th class="py-3 px-3">年度特休</th>
+                <th class="py-3 px-3">本年已休 / 剩餘</th>
+                <th class="py-3 px-3 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="teamTableBody" class="divide-y divide-muji-border/60 text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= 手機版底部導覽列 ================= -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-muji-border px-2 py-1.5 flex justify-around items-center">
+    <button onclick="switchTab('apply')" data-tab-mob="apply" class="mob-nav-btn flex flex-col items-center p-1.5 rounded-xl text-muji-muted">
+      <i data-lucide="file-plus" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5 font-medium">請假</span>
+    </button>
+    <button onclick="switchTab('records')" data-tab-mob="records" class="mob-nav-btn flex flex-col items-center p-1.5 rounded-xl text-muji-muted">
+      <i data-lucide="list-checks" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5 font-medium">紀錄</span>
+    </button>
+    <button onclick="switchTab('calendar')" data-tab-mob="calendar" class="mob-nav-btn flex flex-col items-center p-1.5 rounded-xl text-muji-muted">
+      <i data-lucide="calendar" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5 font-medium">月曆</span>
+    </button>
+    <button onclick="switchTab('approval')" data-tab-mob="approval" id="navApprovalMob" class="mob-nav-btn hidden relative flex flex-col items-center p-1.5 rounded-xl text-muji-muted">
+      <i data-lucide="shield-check" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5 font-medium">簽核</span>
+      <span id="pendingBadgeMob" class="hidden absolute top-0.5 right-1 w-4 h-4 text-[9px] font-bold bg-terra-500 text-white rounded-full flex items-center justify-center">0</span>
+    </button>
+    <button onclick="switchTab('team')" data-tab-mob="team" id="navTeamMob" class="mob-nav-btn hidden flex flex-col items-center p-1.5 rounded-xl text-muji-muted">
+      <i data-lucide="users" class="w-5 h-5"></i>
+      <span class="text-[10px] mt-0.5 font-medium">團隊</span>
+    </button>
+  </nav>
+
+  <!-- ================= Modal: 切換使用者 ================= -->
+  <div id="userSwitchModal" class="hidden fixed inset-0 z-50 bg-muji-text/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-xl border border-muji-border fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-muji-text">切換登入成員</h3>
+        <button onclick="closeModal('userSwitchModal')" class="p-1.5 rounded-xl text-muji-muted hover:bg-muji-subtle"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="userSwitchList" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: 月曆請假詳情 ================= -->
+  <div id="leaveDetailModal" class="hidden fixed inset-0 z-50 bg-muji-text/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl border border-muji-border fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-muji-text">請假單詳細資訊</h3>
+        <button onclick="closeModal('leaveDetailModal')" class="p-1.5 rounded-xl text-muji-muted hover:bg-muji-subtle"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="leaveDetailBody" class="space-y-3 text-sm"></div>
+      <div class="mt-6 flex justify-end">
+        <button onclick="closeModal('leaveDetailModal')" class="px-4 py-2 rounded-xl bg-muji-subtle hover:bg-muji-border/70 text-sm font-medium text-muji-text transition">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: 新增 / 編輯成員 ================= -->
+  <div id="memberModal" class="hidden fixed inset-0 z-50 bg-muji-text/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl border border-muji-border fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="memberModalTitle" class="text-base font-bold text-muji-text">新增團隊成員</h3>
+        <button onclick="closeModal('memberModal')" class="p-1.5 rounded-xl text-muji-muted hover:bg-muji-subtle"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="memberForm" class="space-y-4">
+        <input type="hidden" id="editMemberId" />
+        <div>
+          <label class="block text-sm font-medium text-muji-text mb-1">姓名 <span class="text-terra-500">*</span></label>
+          <input type="text" id="memberNameInput" required placeholder="例如：陳小明" class="w-full px-4 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:border-sage-500" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-muji-text mb-1">角色權限</label>
+            <select id="memberRoleInput" class="w-full px-3 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:border-sage-500">
+              <option value="employee">員工</option>
+              <option value="manager">主管</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-muji-text mb-1">年度特休（天）</label>
+            <input type="number" id="memberQuotaInput" value="10" min="0" max="60" step="0.5" required class="w-full px-3 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:border-sage-500" />
+          </div>
+        </div>
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('memberModal')" class="px-4 py-2 rounded-xl text-sm font-medium text-muji-subtext hover:bg-muji-subtle transition">取消</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sage-500 hover:bg-sage-600 text-white text-sm font-medium shadow-sm transition">儲存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= Modal: 通用確認對話框 ================= -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-muji-text/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-xl border border-muji-border fade-in">
+      <h3 id="confirmTitle" class="text-base font-bold text-muji-text mb-2">確認操作</h3>
+      <p id="confirmMessage" class="text-sm text-muji-subtext mb-6">-</p>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeModal('confirmModal')" class="px-4 py-2 rounded-xl text-sm font-medium text-muji-subtext hover:bg-muji-subtle transition">取消</button>
+        <button id="confirmOkBtn" class="px-4 py-2 rounded-xl bg-terra-500 hover:bg-terra-600 text-white text-sm font-medium shadow-sm transition">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Toast 通知容器 ================= -->
+  <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ================= Firebase v10.12.2 Modular SDK & App Logic ================= -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ---------------- 使用者專屬 Firebase 設定 ----------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyDDEubRI5_mUsERH6olKGKhkhYAgAPbttA",
+      authDomain: "ty3dteam-leave.firebaseapp.com",
+      projectId: "ty3dteam-leave",
+      storageBucket: "ty3dteam-leave.firebasestorage.app",
+      messagingSenderId: "732152714593",
+      appId: "1:732152714593:web:02b6af17fb53c282292120",
+      measurementId: "G-ZD2W20JBQT"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const membersCol = collection(db, "members");
+    const leavesCol = collection(db, "leaves");
+
+    // ---------------- 全域狀態 ----------------
+    const STORAGE_MEMBER_KEY = "ty3d_active_member_id";
+    let members = [];
+    let leaves = [];
+    let activeMember = null;
+    let currentTab = "apply";
+    let calDate = new Date();
+    let isSeeding = false;
+    let initialMembersLoaded = false;
+    let initialLeavesLoaded = false;
+
+    // ---------------- UI 工具函式 ----------------
+    function setConnectionStatus(state, label) {
+      const badge = document.getElementById("connBadge");
+      const dot = document.getElementById("connDot");
+      const text = document.getElementById("connText");
+      text.textContent = label;
+
+      badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border";
+      if (state === "online") {
+        badge.classList.add("bg-sage-50", "text-sage-700", "border-sage-100");
+        dot.className = "w-1.5 h-1.5 rounded-full bg-sage-500";
+      } else if (state === "error") {
+        badge.classList.add("bg-terra-50", "text-terra-600", "border-terra-500/30");
+        dot.className = "w-1.5 h-1.5 rounded-full bg-terra-500";
+      } else {
+        badge.classList.add("bg-amber-50", "text-amber-700", "border-amber-200/70");
+        dot.className = "w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse";
+      }
+    }
+
+    function showErrorBanner(title, desc) {
+      setConnectionStatus("error", "連線異常");
+      document.getElementById("errorBannerTitle").textContent = title;
+      document.getElementById("errorBannerDesc").innerHTML = desc;
+      document.getElementById("errorBanner").classList.remove("hidden");
+      document.getElementById("loadingOverlay").classList.add("hidden");
+      lucide.createIcons();
+    }
+
+    function showToast(msg, type = "success") {
+      const container = document.getElementById("toastContainer");
+      const el = document.createElement("div");
+      const color = type === "error" ? "bg-terra-500 text-white" : "bg-muji-text text-white";
+      el.className = `${color} px-4 py-3 rounded-2xl shadow-lg text-sm font-medium fade-in pointer-events-auto`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = "0";
+        el.style.transition = "opacity 0.25s ease";
+        setTimeout(() => el.remove(), 260);
+      }, 3000);
+    }
+
+    window.closeModal = (id) => document.getElementById(id).classList.add("hidden");
+
+    function openConfirm(title, message, onOk) {
+      document.getElementById("confirmTitle").textContent = title;
+      document.getElementById("confirmMessage").textContent = message;
+      const oldBtn = document.getElementById("confirmOkBtn");
+      const newBtn = oldBtn.cloneNode(true);
+      oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+      newBtn.addEventListener("click", () => {
+        closeModal("confirmModal");
+        onOk();
+      });
+      document.getElementById("confirmModal").classList.remove("hidden");
+    }
+
+    function formatDate(d) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    function countWorkDays(startStr, endStr) {
+      if (!startStr || !endStr) return 0;
+      const start = new Date(startStr + "T00:00:00");
+      const end = new Date(endStr + "T00:00:00");
+      if (end < start) return 0;
+      let count = 0;
+      const cur = new Date(start);
+      while (cur <= end) {
+        const day = cur.getDay();
+        if (day !== 0 && day !== 6) count++;
+        cur.setDate(cur.getDate() + 1);
+      }
+      return count;
+    }
+
+    function escapeHtml(str = "") {
+      return String(str).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    }
+
+    // ---------------- Firebase 啟動與即時監聽 ----------------
+    async function bootstrap() {
+      lucide.createIcons();
+      initFormDates();
+
+      try {
+        await signInAnonymously(auth);
+      } catch (err) {
+        console.error("Anonymous Auth Error:", err);
+        showErrorBanner(
+          "匿名登入驗證失敗",
+          `請前往 Firebase 控制台 ＞ 建構 ＞ Authentication ＞ 登入方式，確認已啟用「<strong>匿名（Anonymous）</strong>」登入。（錯誤碼：${escapeHtml(err.code || err.message)}）`
+        );
+        return;
+      }
+
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          subscribeCollections();
+        }
+      });
+    }
+
+    async function seedDefaultMembers() {
+      if (isSeeding) return;
+      isSeeding = true;
+      const defaults = [
+        { name: "陳主管", role: "manager", annualQuota: 14, createdAt: Date.now() },
+        { name: "林小美", role: "employee", annualQuota: 10, createdAt: Date.now() + 1 },
+        { name: "張大明", role: "employee", annualQuota: 10, createdAt: Date.now() + 2 },
+        { name: "王雅婷", role: "employee", annualQuota: 7, createdAt: Date.now() + 3 },
+        { name: "李志豪", role: "employee", annualQuota: 7, createdAt: Date.now() + 4 }
+      ];
+      try {
+        for (const m of defaults) {
+          await addDoc(membersCol, m);
+        }
+        showToast("已自動建立 5 位預設團隊成員（可於團隊設定修改）");
+      } catch (err) {
+        console.error("Seed error:", err);
+      } finally {
+        isSeeding = false;
+      }
+    }
+
+    function subscribeCollections() {
+      onSnapshot(membersCol, async (snap) => {
+        if (snap.empty && !isSeeding) {
+          await seedDefaultMembers();
+          return;
+        }
+        members = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+        initialMembersLoaded = true;
+        checkInitialReady();
+      }, (err) => {
+        console.error("Members snapshot error:", err);
+        showErrorBanner(
+          "讀取團隊成員資料失敗（權限不足）",
+          `請前往 Firebase 控制台 ＞ Firestore Database ＞ 規則，確認已發布 <code class="bg-white/80 px-1.5 py-0.5 rounded font-mono">allow read, write: if request.auth != null;</code>。（錯誤碼：${escapeHtml(err.code || err.message)}）`
+        );
+      });
+
+      onSnapshot(leavesCol, (snap) => {
+        leaves = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        initialLeavesLoaded = true;
+        checkInitialReady();
+      }, (err) => {
+        console.error("Leaves snapshot error:", err);
+        showErrorBanner(
+          "讀取請假紀錄失敗（權限不足）",
+          `請前往 Firebase 控制台 ＞ Firestore Database ＞ 規則，確認已發布 <code class="bg-white/80 px-1.5 py-0.5 rounded font-mono">allow read, write: if request.auth != null;</code>。（錯誤碼：${escapeHtml(err.code || err.message)}）`
+        );
+      });
+    }
+
+    function checkInitialReady() {
+      if (!initialMembersLoaded || !initialLeavesLoaded) return;
+
+      document.getElementById("loadingOverlay").classList.add("hidden");
+      document.getElementById("errorBanner").classList.add("hidden");
+      setConnectionStatus("online", "雲端同步中");
+
+      // 從 localStorage 還原使用者
+      const savedId = localStorage.getItem(STORAGE_MEMBER_KEY);
+      const found = members.find(m => m.id === savedId);
+      if (found) {
+        activeMember = found;
+        document.getElementById("welcomeModal").classList.add("hidden");
+        renderAll();
+      } else {
+        activeMember = null;
+        openWelcomeModal();
+      }
+    }
+
+    // ---------------- 使用者身分選擇與切換 ----------------
+    function openWelcomeModal() {
+      const grid = document.getElementById("welcomeMemberGrid");
+      grid.innerHTML = members.map(m => `
+        <button onclick="selectActiveMember('${m.id}')" class="w-full flex items-center justify-between p-3.5 rounded-2xl border border-muji-border hover:border-sage-500 hover:bg-sage-50/60 transition text-left">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full ${m.role === 'manager' ? 'bg-sage-500 text-white' : 'bg-muji-subtle text-muji-text'} text-sm font-bold flex items-center justify-center">${escapeHtml(m.name.slice(0, 1))}</div>
+            <div>
+              <div class="text-sm font-bold text-muji-text">${escapeHtml(m.name)}</div>
+              <div class="text-xs text-muji-subtext">年度特休 ${m.annualQuota} 天</div>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-full text-xs font-medium ${m.role === 'manager' ? 'bg-sage-100 text-sage-700' : 'bg-muji-subtle text-muji-subtext'}">${m.role === 'manager' ? '主管' : '員工'}</span>
+        </button>
+      `).join("");
+      document.getElementById("welcomeModal").classList.remove("hidden");
+    }
+
+    window.openUserSwitcher = () => {
+      const list = document.getElementById("userSwitchList");
+      list.innerHTML = members.map(m => `
+        <button onclick="selectActiveMember('${m.id}')" class="w-full flex items-center justify-between p-3 rounded-2xl border ${activeMember?.id === m.id ? 'border-sage-500 bg-sage-50/70' : 'border-muji-border hover:bg-muji-subtle/60'} transition text-left">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full ${m.role === 'manager' ? 'bg-sage-500 text-white' : 'bg-muji-subtle text-muji-text'} text-xs font-bold flex items-center justify-center">${escapeHtml(m.name.slice(0, 1))}</div>
+            <div>
+              <div class="text-sm font-bold text-muji-text">${escapeHtml(m.name)}</div>
+              <div class="text-[11px] text-muji-subtext">${m.role === 'manager' ? '主管（含簽核與設定權限）' : '一般員工'}</div>
+            </div>
+          </div>
+          ${activeMember?.id === m.id ? '<i data-lucide="check" class="w-4 h-4 text-sage-600"></i>' : ''}
+        </button>
+      `).join("");
+      document.getElementById("userSwitchModal").classList.remove("hidden");
+      lucide.createIcons();
+    };
+
+    window.selectActiveMember = (id) => {
+      const target = members.find(m => m.id === id);
+      if (!target) return;
+      activeMember = target;
+      localStorage.setItem(STORAGE_MEMBER_KEY, id);
+      closeModal("welcomeModal");
+      closeModal("userSwitchModal");
+      showToast(`已切換身分：${target.name}`);
+      renderAll();
+    };
+
+    // ---------------- 分頁切換 ----------------
+    window.switchTab = (tab) => {
+      currentTab = tab;
+      document.querySelectorAll(".tab-panel").forEach(el => el.classList.add("hidden"));
+      const panel = document.getElementById(`tab-${tab}`);
+      if (panel) panel.classList.remove("hidden");
+
+      // 儀表板卡片顯示於「我要請假」與「我的紀錄」
+      document.getElementById("dashboardCards").classList.toggle("hidden", !(tab === "apply" || tab === "records"));
+
+      document.querySelectorAll(".nav-btn").forEach(btn => {
+        const active = btn.dataset.tab === tab;
+        btn.classList.toggle("bg-white", active);
+        btn.classList.toggle("text-muji-text", active);
+        btn.classList.toggle("shadow-sm", active);
+        btn.classList.toggle("text-muji-subtext", !active);
+      });
+
+      document.querySelectorAll(".mob-nav-btn").forEach(btn => {
+        const active = btn.dataset.tabMob === tab;
+        btn.classList.toggle("text-sage-600", active);
+        btn.classList.toggle("text-muji-muted", !active);
+      });
+
+      if (tab === "calendar") renderCalendar();
+      lucide.createIcons();
+    };
+
+    // ---------------- 請假表單計算與送出 ----------------
+    function initFormDates() {
+      const today = formatDate(new Date());
+      document.getElementById("startDate").value = today;
+      document.getElementById("endDate").value = today;
+      recalcHours();
+
+      ["startDate", "endDate", "durationMode"].forEach(id => {
+        document.getElementById(id).addEventListener("change", recalcHours);
+      });
+      document.getElementById("leaveHours").addEventListener("input", updateDaysLabel);
+    }
+
+    function recalcHours() {
+      const start = document.getElementById("startDate").value;
+      const endInput = document.getElementById("endDate");
+      const mode = document.getElementById("durationMode").value;
+      const hrsInput = document.getElementById("leaveHours");
+
+      if (endInput.value < start) endInput.value = start;
+
+      if (mode === "custom") {
+        hrsInput.readOnly = false;
+        hrsInput.classList.remove("bg-muji-subtle");
+        hrsInput.classList.add("bg-white");
+      } else {
+        hrsInput.readOnly = true;
+        hrsInput.classList.add("bg-muji-subtle");
+        hrsInput.classList.remove("bg-white");
+        if (mode === "am" || mode === "pm") {
+          endInput.value = start;
+          hrsInput.value = 4;
+        } else {
+          const workDays = countWorkDays(start, endInput.value);
+          hrsInput.value = Math.max(0, workDays * 8);
+        }
+      }
+      updateDaysLabel();
+    }
+
+    function updateDaysLabel() {
+      const hrs = parseFloat(document.getElementById("leaveHours").value) || 0;
+      const days = +(hrs / 8).toFixed(2);
+      document.getElementById("leaveDaysHint").textContent = `小時 (${days} 天)`;
+    }
+
+    window.resetLeaveForm = () => {
+      document.getElementById("leaveForm").reset();
+      initFormDates();
+    };
+
+    document.getElementById("leaveForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!activeMember) return;
+
+      const type = document.querySelector('input[name="leaveType"]:checked').value;
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+      const durationMode = document.getElementById("durationMode").value;
+      const hours = parseFloat(document.getElementById("leaveHours").value) || 0;
+      const deputy = document.getElementById("deputySelect").value;
+      const reason = document.getElementById("leaveReason").value.trim();
+
+      if (hours <= 0) {
+        showToast("請假時數需大於 0 小時（全天模式已自動排除週末）", "error");
+        return;
+      }
+      if (!deputy) {
+        showToast("請選擇職務代理人", "error");
+        return;
+      }
+
+      const btn = document.getElementById("submitLeaveBtn");
+      btn.disabled = true;
+
+      try {
+        await addDoc(leavesCol, {
+          memberId: activeMember.id,
+          memberName: activeMember.name,
+          type,
+          startDate,
+          endDate,
+          durationMode,
+          hours,
+          days: +(hours / 8).toFixed(2),
+          deputy,
+          reason,
+          status: "pending",
+          managerNote: "",
+          reviewedBy: "",
+          createdAt: Date.now()
+        });
+        showToast("請假申請已送出！");
+        resetLeaveForm();
+        switchTab("records");
+      } catch (err) {
+        console.error(err);
+        showToast("送出失敗，請檢查網路或資料庫權限", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ---------------- 畫面渲染 ----------------
+    function renderAll() {
+      if (!activeMember) return;
+      renderHeader();
+      renderDashboardStats();
+      renderDeputyDropdown();
+      renderUpcomingLeaves();
+      renderMyRecords();
+      renderApprovalCenter();
+      renderHistoryList();
+      renderTeamTable();
+      if (currentTab === "calendar") renderCalendar();
+      lucide.createIcons();
+    }
+
+    function renderHeader() {
+      const isMgr = activeMember.role === "manager";
+      document.getElementById("headerAvatar").textContent = activeMember.name.slice(0, 1);
+      document.getElementById("headerUserName").textContent = activeMember.name;
+      document.getElementById("headerUserRole").textContent = isMgr ? "主管" : "員工";
+
+      ["navApprovalDesk", "navTeamDesk", "navApprovalMob", "navTeamMob"].forEach(id => {
+        document.getElementById(id).classList.toggle("hidden", !isMgr);
+      });
+
+      if (!isMgr && (currentTab === "approval" || currentTab === "team")) {
+        switchTab("apply");
+      }
+
+      const pendingCount = leaves.filter(l => l.status === "pending").length;
+      const bDesk = document.getElementById("pendingBadgeDesk");
+      const bMob = document.getElementById("pendingBadgeMob");
+      if (isMgr && pendingCount > 0) {
+        bDesk.textContent = pendingCount;
+        bDesk.classList.remove("hidden");
+        bMob.textContent = pendingCount;
+        bMob.classList.remove("hidden");
+      } else {
+        bDesk.classList.add("hidden");
+        bMob.classList.add("hidden");
+      }
+    }
+
+    function renderDashboardStats() {
+      const year = String(new Date().getFullYear());
+      const myLeaves = leaves.filter(l => l.memberId === activeMember.id);
+
+      const usedAnnualHours = myLeaves
+        .filter(l => l.status === "approved" && l.type === "特休" && l.startDate.startsWith(year))
+        .reduce((sum, l) => sum + (l.hours || 0), 0);
+
+      const usedTotalHours = myLeaves
+        .filter(l => l.status === "approved" && l.startDate.startsWith(year))
+        .reduce((sum, l) => sum + (l.hours || 0), 0);
+
+      const quotaDays = parseFloat(activeMember.annualQuota) || 0;
+      const remainHours = Math.max(0, +(quotaDays * 8 - usedAnnualHours).toFixed(1));
+      const remainDays = +(remainHours / 8).toFixed(2);
+      const pendingCount = myLeaves.filter(l => l.status === "pending").length;
+
+      document.getElementById("statRemainDays").textContent = remainDays;
+      document.getElementById("statRemainHours").textContent = `(${remainHours} 小時)`;
+      document.getElementById("statQuotaInfo").textContent = `年度特休總額 ${quotaDays} 天`;
+
+      document.getElementById("statUsedDays").textContent = +(usedTotalHours / 8).toFixed(2);
+      document.getElementById("statUsedHours").textContent = `(${+usedTotalHours.toFixed(1)} 小時)`;
+      document.getElementById("statUsedAnnualSub").textContent = `其中已核准特休 ${+(usedAnnualHours / 8).toFixed(2)} 天`;
+
+      document.getElementById("statPendingCount").textContent = pendingCount;
+    }
+
+    function renderDeputyDropdown() {
+      const sel = document.getElementById("deputySelect");
+      const prev = sel.value;
+      const others = members.filter(m => m.id !== activeMember.id);
+      sel.innerHTML = `<option value="">請選擇職務代理人...</option>` +
+        others.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}（${m.role === 'manager' ? '主管' : '員工'}）</option>`).join("");
+      if (prev) sel.value = prev;
+    }
+
+    function renderUpcomingLeaves() {
+      const today = formatDate(new Date());
+      const list = leaves
+        .filter(l => (l.status === "approved" || l.status === "pending") && l.endDate >= today)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate))
+        .slice(0, 6);
+
+      const container = document.getElementById("upcomingLeavesList");
+      if (!list.length) {
+        container.innerHTML = `<p class="text-xs text-muji-muted text-center py-6">近期無團隊成員請假</p>`;
+        return;
+      }
+
+      container.innerHTML = list.map(l => `
+        <div onclick="openLeaveDetail('${l.id}')" class="cursor-pointer flex items-center justify-between gap-2 p-3 rounded-2xl bg-muji-bg hover:bg-muji-subtle/80 border border-muji-border/60 transition">
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-bold text-muji-text truncate">${escapeHtml(l.memberName)}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white border border-muji-border text-muji-subtext">${escapeHtml(l.type)}</span>
+            </div>
+            <div class="text-[11px] text-muji-subtext mt-0.5">${l.startDate}${l.endDate !== l.startDate ? ' ~ ' + l.endDate : ''} · ${l.hours}h</div>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${l.status === 'approved' ? 'bg-sage-100 text-sage-700' : 'bg-amber-100 text-amber-700'}">
+            ${l.status === 'approved' ? '已核准' : '待審核'}
+          </span>
+        </div>
+      `).join("");
+    }
+
+    function statusBadge(status) {
+      if (status === "approved") return `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-sage-100 text-sage-700">已核准</span>`;
+      if (status === "rejected") return `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-terra-100 text-terra-600">已駁回</span>`;
+      return `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">待審核</span>`;
+    }
+
+    function modeLabel(mode) {
+      return { full: "全天", am: "上午", pm: "下午", custom: "自訂" }[mode] || "全天";
+    }
+
+    // ---------------- 我的紀錄 ----------------
+    window.renderMyRecords = () => {
+      const filter = document.getElementById("myStatusFilter").value;
+      const list = leaves.filter(l => l.memberId === activeMember.id && (filter === "all" || l.status === filter));
+      const box = document.getElementById("myRecordsContainer");
+
+      if (!list.length) {
+        box.innerHTML = `<div class="text-center py-12 text-muji-muted text-sm">目前沒有符合條件的請假紀錄</div>`;
+        return;
+      }
+
+      box.innerHTML = list.map(l => `
+        <div class="p-4 sm:p-5 rounded-2xl border border-muji-border bg-muji-bg/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1.5">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-lg bg-muji-text text-white text-xs font-medium">${escapeHtml(l.type)}</span>
+              <span class="text-sm font-bold text-muji-text">${l.startDate}${l.endDate !== l.startDate ? ' 至 ' + l.endDate : ''}</span>
+              <span class="text-xs text-muji-subtext">(${modeLabel(l.durationMode)}・${l.hours} 小時 / ${l.days} 天)</span>
+            </div>
+            <p class="text-sm text-muji-subtext">${escapeHtml(l.reason)}</p>
+            <div class="text-xs text-muji-muted flex flex-wrap gap-3">
+              <span>代理人：${escapeHtml(l.deputy)}</span>
+              ${l.managerNote ? `<span class="text-sage-700 font-medium">主管備註：${escapeHtml(l.managerNote)}</span>` : ""}
+            </div>
+          </div>
+          <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+            ${statusBadge(l.status)}
+            ${l.status === "pending" ? `<button onclick="withdrawLeave('${l.id}')" class="px-3 py-1.5 rounded-xl border border-terra-500/40 text-terra-600 hover:bg-terra-50 text-xs font-medium transition">撤回</button>` : ""}
+          </div>
+        </div>
+      `).join("");
+    };
+
+    window.withdrawLeave = (id) => {
+      openConfirm("撤回請假申請", "確定要撤回這筆待審核的假單嗎？", async () => {
+        try {
+          await deleteDoc(doc(db, "leaves", id));
+          showToast("已撤回假單");
+        } catch (err) {
+          console.error(err);
+          showToast("撤回失敗", "error");
+        }
+      });
+    };
+
+    // ---------------- 團隊月曆 ----------------
+    window.shiftCalendarMonth = (delta) => {
+      calDate.setMonth(calDate.getMonth() + delta);
+      renderCalendar();
+    };
+    window.jumpCalendarToday = () => {
+      calDate = new Date();
+      renderCalendar();
+    };
+
+    function renderCalendar() {
+      const y = calDate.getFullYear();
+      const m = calDate.getMonth();
+      document.getElementById("calTitle").textContent = `${y}年 ${m + 1}月`;
+
+      const firstDay = new Date(y, m, 1).getDay();
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const todayStr = formatDate(new Date());
+      const activeLeaves = leaves.filter(l => l.status === "approved" || l.status === "pending");
+
+      let html = "";
+      for (let i = 0; i < firstDay; i++) {
+        html += `<div class="min-h-[72px] sm:min-h-[96px] rounded-xl bg-muji-bg/50"></div>`;
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        const isToday = dateStr === todayStr;
+        const dayLeaves = activeLeaves.filter(l => dateStr >= l.startDate && dateStr <= l.endDate);
+
+        html += `
+          <div class="min-h-[72px] sm:min-h-[96px] p-1.5 rounded-xl border ${isToday ? 'border-sage-500 bg-sage-50/40' : 'border-muji-border/80 bg-white'} flex flex-col gap-1 overflow-hidden">
+            <span class="text-xs font-semibold ${isToday ? 'text-sage-700' : 'text-muji-subtext'} px-1">${d}</span>
+            <div class="flex flex-col gap-1 overflow-y-auto max-h-[64px]">
+              ${dayLeaves.map(l => `
+                <button onclick="openLeaveDetail('${l.id}')" class="text-left text-[10px] px-1.5 py-0.5 rounded-md truncate font-medium transition hover:opacity-80 ${l.status === 'approved' ? 'bg-sage-100 text-sage-700' : 'bg-amber-100 text-amber-800'}">
+                  ${escapeHtml(l.memberName)}・${escapeHtml(l.type)}
+                </button>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      document.getElementById("calendarGrid").innerHTML = html;
+    }
+
+    window.openLeaveDetail = (id) => {
+      const l = leaves.find(x => x.id === id);
+      if (!l) return;
+      document.getElementById("leaveDetailBody").innerHTML = `
+        <div class="flex items-center justify-between pb-3 border-b border-muji-border/70">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-base text-muji-text">${escapeHtml(l.memberName)}</span>
+            <span class="px-2 py-0.5 rounded-lg bg-muji-subtle text-xs font-medium text-muji-text">${escapeHtml(l.type)}</span>
+          </div>
+          ${statusBadge(l.status)}
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="bg-muji-bg p-3 rounded-xl">
+            <div class="text-muji-muted mb-0.5">請假日期</div>
+            <div class="font-semibold text-muji-text">${l.startDate}${l.endDate !== l.startDate ? ' ~ ' + l.endDate : ''}</div>
+          </div>
+          <div class="bg-muji-bg p-3 rounded-xl">
+            <div class="text-muji-muted mb-0.5">時數 / 時段</div>
+            <div class="font-semibold text-muji-text">${l.hours} 小時 (${modeLabel(l.durationMode)})</div>
+          </div>
+        </div>
+        <div class="bg-muji-bg p-3 rounded-xl text-xs">
+          <div class="text-muji-muted mb-0.5">職務代理人</div>
+          <div class="font-semibold text-muji-text">${escapeHtml(l.deputy)}</div>
+        </div>
+        <div class="bg-muji-bg p-3 rounded-xl text-xs">
+          <div class="text-muji-muted mb-0.5">請假事由</div>
+          <div class="text-muji-text leading-relaxed">${escapeHtml(l.reason)}</div>
+        </div>
+        ${l.managerNote ? `
+          <div class="bg-sage-50 p-3 rounded-xl text-xs border border-sage-100">
+            <div class="text-sage-700 font-semibold mb-0.5">主管備註 (${escapeHtml(l.reviewedBy || '主管')})</div>
+            <div class="text-sage-700/90">${escapeHtml(l.managerNote)}</div>
+          </div>
+        ` : ""}
+      `;
+      document.getElementById("leaveDetailModal").classList.remove("hidden");
+    };
+
+    // ---------------- 主管簽核中心 ----------------
+    function renderApprovalCenter() {
+      const pending = leaves.filter(l => l.status === "pending");
+      document.getElementById("pendingHeaderCount").textContent = `${pending.length} 件待處理`;
+      const box = document.getElementById("pendingApprovalList");
+
+      if (!pending.length) {
+        box.innerHTML = `<div class="text-center py-10 text-muji-muted text-sm">目前沒有待審核的假單</div>`;
+        return;
+      }
+
+      box.innerHTML = pending.map(l => `
+        <div class="p-4 sm:p-5 rounded-2xl border border-muji-border bg-muji-bg/50 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-bold text-muji-text text-base">${escapeHtml(l.memberName)}</span>
+              <span class="px-2.5 py-0.5 rounded-lg bg-sage-100 text-sage-700 text-xs font-semibold">${escapeHtml(l.type)}</span>
+              <span class="text-sm font-medium text-muji-text">${l.startDate}${l.endDate !== l.startDate ? ' 至 ' + l.endDate : ''}</span>
+              <span class="text-xs text-muji-subtext">(${modeLabel(l.durationMode)}・${l.hours} 小時)</span>
+            </div>
+            <span class="text-xs text-muji-muted">代理人：${escapeHtml(l.deputy)}</span>
+          </div>
+          <p class="text-sm text-muji-subtext bg-white px-3.5 py-2.5 rounded-xl border border-muji-border/60">${escapeHtml(l.reason)}</p>
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+            <input type="text" id="note-${l.id}" placeholder="主管簽核備註（選填）..." class="flex-1 px-3.5 py-2 rounded-xl border border-muji-border bg-white text-sm focus:outline-none focus:border-sage-500" />
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="reviewLeave('${l.id}', 'rejected')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl border border-terra-500/40 text-terra-600 hover:bg-terra-50 text-xs font-semibold transition">駁回</button>
+              <button onclick="reviewLeave('${l.id}', 'approved')" class="flex-1 sm:flex-none px-5 py-2 rounded-xl bg-sage-500 hover:bg-sage-600 text-white text-xs font-semibold shadow-sm transition">核准</button>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    window.reviewLeave = async (id, status) => {
+      const noteEl = document.getElementById(`note-${id}`);
+      const managerNote = noteEl ? noteEl.value.trim() : "";
+      try {
+        await updateDoc(doc(db, "leaves", id), {
+          status,
+          managerNote,
+          reviewedBy: activeMember.name,
+          reviewedAt: Date.now()
+        });
+        showToast(status === "approved" ? "已核准該筆假單" : "已駁回該筆假單");
+      } catch (err) {
+        console.error(err);
+        showToast("簽核更新失敗", "error");
+      }
+    };
+
+    window.renderHistoryList = () => {
+      const monthFilter = document.getElementById("historyMonthFilter").value;
+      const statusFilter = document.getElementById("historyStatusFilter").value;
+
+      const filtered = leaves.filter(l => {
+        const matchStatus = statusFilter === "all" || l.status === statusFilter;
+        const matchMonth = !monthFilter || l.startDate.startsWith(monthFilter);
+        return matchStatus && matchMonth;
+      });
+
+      const box = document.getElementById("historyLeavesList");
+      if (!filtered.length) {
+        box.innerHTML = `<div class="text-center py-10 text-muji-muted text-sm">無符合篩選條件的請假紀錄</div>`;
+        return;
+      }
+
+      box.innerHTML = filtered.map(l => `
+        <div class="p-4 rounded-2xl border border-muji-border/80 bg-muji-bg/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-bold text-muji-text text-sm">${escapeHtml(l.memberName)}</span>
+              <span class="px-2 py-0.5 rounded-md bg-white border border-muji-border text-xs font-medium text-muji-subtext">${escapeHtml(l.type)}</span>
+              <span class="text-xs font-medium text-muji-text">${l.startDate}${l.endDate !== l.startDate ? ' ~ ' + l.endDate : ''}</span>
+              <span class="text-xs text-muji-subtext">(${l.hours} 小時)</span>
+            </div>
+            <p class="text-xs text-muji-subtext">${escapeHtml(l.reason)}</p>
+            <div class="text-[11px] text-muji-muted flex flex-wrap gap-3">
+              <span>代理人：${escapeHtml(l.deputy)}</span>
+              ${l.reviewedBy ? `<span>簽核人：${escapeHtml(l.reviewedBy)}</span>` : ""}
+              ${l.managerNote ? `<span class="text-sage-700">備註：${escapeHtml(l.managerNote)}</span>` : ""}
+            </div>
+          </div>
+          <div class="shrink-0 self-start sm:self-center">${statusBadge(l.status)}</div>
+        </div>
+      `).join("");
+    };
+
+    window.exportCSV = () => {
+      const monthFilter = document.getElementById("historyMonthFilter").value;
+      const statusFilter = document.getElementById("historyStatusFilter").value;
+      const filtered = leaves.filter(l => {
+        const matchStatus = statusFilter === "all" || l.status === statusFilter;
+        const matchMonth = !monthFilter || l.startDate.startsWith(monthFilter);
+        return matchStatus && matchMonth;
+      });
+
+      if (!filtered.length) {
+        showToast("目前篩選條件下沒有可匯出的資料", "error");
+        return;
+      }
+
+      const headers = ["申請人", "假別", "開始日期", "結束日期", "時段", "請假時數", "請假天數", "職務代理人", "請假事由", "狀態", "簽核主管", "主管備註"];
+      const statusMap = { pending: "待審核", approved: "已核准", rejected: "已駁回" };
+
+      const rows = filtered.map(l => [
+        l.memberName,
+        l.type,
+        l.startDate,
+        l.endDate,
+        modeLabel(l.durationMode),
+        l.hours,
+        l.days,
+        l.deputy,
+        (l.reason || "").replace(/"/g, '""'),
+        statusMap[l.status] || l.status,
+        l.reviewedBy || "",
+        (l.managerNote || "").replace(/"/g, '""')
+      ].map(v => `"${v}"`).join(","));
+
+      const csv = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `團隊請假報表_${monthFilter || formatDate(new Date())}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Excel CSV 報表已下載");
+    };
+
+    // ---------------- 團隊設定 ----------------
+    function renderTeamTable() {
+      const year = String(new Date().getFullYear());
+      const tbody = document.getElementById("teamTableBody");
+
+      tbody.innerHTML = members.map(m => {
+        const usedHours = leaves
+          .filter(l => l.memberId === m.id && l.status === "approved" && l.type === "特休" && l.startDate.startsWith(year))
+          .reduce((s, l) => s + (l.hours || 0), 0);
+        const usedDays = +(usedHours / 8).toFixed(2);
+        const quota = parseFloat(m.annualQuota) || 0;
+        const remain = Math.max(0, +(quota - usedDays).toFixed(2));
+
+        return `
+          <tr class="hover:bg-muji-bg/60 transition">
+            <td class="py-3.5 px-3 font-bold text-muji-text">
+              ${escapeHtml(m.name)}
+              ${m.id === activeMember.id ? '<span class="text-[10px] text-sage-600 font-normal ml-1">(目前登入)</span>' : ''}
+            </td>
+            <td class="py-3.5 px-3">
+              <span class="px-2.5 py-1 rounded-full text-xs font-medium ${m.role === 'manager' ? 'bg-sage-100 text-sage-700' : 'bg-muji-subtle text-muji-subtext'}">
+                ${m.role === 'manager' ? '主管' : '員工'}
+              </span>
+            </td>
+            <td class="py-3.5 px-3 font-medium text-muji-text">${quota} 天</td>
+            <td class="py-3.5 px-3 text-xs text-muji-subtext">已休 ${usedDays} 天 / <strong class="text-sage-700">剩 ${remain} 天</strong></td>
+            <td class="py-3.5 px-3 text-right space-x-1">
+              <button onclick="openMemberModal('${m.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-muji-subtext hover:bg-muji-subtle transition">編輯</button>
+              ${m.id !== activeMember.id ? `<button onclick="deleteMember('${m.id}', '${escapeHtml(m.name)}')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-terra-600 hover:bg-terra-50 transition">移除</button>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    window.openMemberModal = (id = null) => {
+      document.getElementById("memberForm").reset();
+      if (id) {
+        const m = members.find(x => x.id === id);
+        if (!m) return;
+        document.getElementById("memberModalTitle").textContent = "編輯成員資料";
+        document.getElementById("editMemberId").value = m.id;
+        document.getElementById("memberNameInput").value = m.name;
+        document.getElementById("memberRoleInput").value = m.role;
+        document.getElementById("memberQuotaInput").value = m.annualQuota;
+      } else {
+        document.getElementById("memberModalTitle").textContent = "新增團隊成員";
+        document.getElementById("editMemberId").value = "";
+        document.getElementById("memberQuotaInput").value = 10;
+      }
+      document.getElementById("memberModal").classList.remove("hidden");
+    };
+
+    document.getElementById("memberForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("editMemberId").value;
+      const payload = {
+        name: document.getElementById("memberNameInput").value.trim(),
+        role: document.getElementById("memberRoleInput").value,
+        annualQuota: parseFloat(document.getElementById("memberQuotaInput").value) || 0
+      };
+      if (!payload.name) return;
+
+      try {
+        if (id) {
+          await updateDoc(doc(db, "members", id), payload);
+          showToast("成員資料已更新");
+        } else {
+          await addDoc(membersCol, { ...payload, createdAt: Date.now() });
+          showToast("已新增團隊成員");
+        }
+        closeModal("memberModal");
+      } catch (err) {
+        console.error(err);
+        showToast("儲存失敗", "error");
+      }
+    });
+
+    window.deleteMember = (id, name) => {
+      openConfirm("移除團隊成員", `確定要移除「${name}」嗎？（歷史請假紀錄仍會保留）`, async () => {
+        try {
+          await deleteDoc(doc(db, "members", id));
+          showToast(`已移除 ${name}`);
+        } catch (err) {
+          console.error(err);
+          showToast("移除失敗", "error");
+        }
+      });
+    };
+
+    // 啟動系統
+    window.addEventListener("DOMContentLoaded", () => {
+      switchTab("apply");
+      bootstrap();
+    });
+  </script>
+</body>
+</html>
