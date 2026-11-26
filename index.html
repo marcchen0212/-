@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>天御科技有限公司｜請假與差勤管理系統</title>
+  <title>天御科技有限公司 - 請假與差勤系統</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Noto Sans TC & Inter -->
@@ -22,26 +22,26 @@
           },
           colors: {
             muji: {
-              bg: '#F8F7F4',
+              bg: '#F7F6F2',
               surface: '#FFFFFF',
-              subtle: '#F1EFEA',
-              border: '#E5E2DC',
-              muted: '#9A958E',
-              text: '#2C2A27',
-              subtext: '#68645E',
+              subtle: '#EFECE6',
+              border: '#E4E0D8',
+              muted: '#969088',
+              text: '#2B2926',
+              subtext: '#66625B',
             },
             sage: {
-              50: '#F2F5F2',
-              100: '#E2EBE4',
-              500: '#5D7A66',
-              600: '#4B6553',
-              700: '#3A4F41',
+              50: '#F1F4F2',
+              100: '#E0E8E3',
+              500: '#5B7365',
+              600: '#495E52',
+              700: '#394A40',
             },
             terra: {
               50: '#FBF3F0',
-              100: '#F6E2DA',
-              500: '#C56A4E',
-              600: '#A9553B',
+              100: '#F5E1D9',
+              500: '#C86D51',
+              600: '#AC583E',
             },
             slatex: {
               50: '#F3F5F7',
@@ -56,8 +56,8 @@
 
   <style>
     body {
-      background-color: #F8F7F4;
-      color: #2C2A27;
+      background-color: #F7F6F2;
+      color: #2B2926;
       -webkit-font-smoothing: antialiased;
     }
     ::-webkit-scrollbar {
@@ -68,11 +68,11 @@
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: #D7D3CA;
+      background: #D6D1C7;
       border-radius: 9999px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #B5B0A6;
+      background: #B5AFA4;
     }
     .fade-in {
       animation: fadeIn 0.22s ease-out;
@@ -106,51 +106,33 @@
   <!-- ================= 載入中畫面 ================= -->
   <div id="loadingOverlay" class="fixed inset-0 z-50 bg-muji-bg flex flex-col items-center justify-center p-6">
     <div class="w-12 h-12 rounded-2xl bg-sage-500 text-white flex items-center justify-center shadow-sm mb-4 animate-pulse">
-      <i data-lucide="leaf" class="w-6 h-6"></i>
+      <i data-lucide="shield-check" class="w-6 h-6"></i>
     </div>
-    <p class="text-muji-text font-semibold tracking-wide">正在連線至團隊雲端資料庫...</p>
-    <p id="loadingHint" class="text-muji-muted text-xs mt-1.5">驗證匿名安全連線中</p>
-  </div>
-
-  <!-- ================= 初次選擇身分 Modal ================= -->
-  <div id="welcomeModal" class="hidden fixed inset-0 z-40 bg-muji-text/40 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-xl border border-muji-border fade-in">
-      <div class="flex items-center gap-3 mb-5">
-        <div class="w-10 h-10 rounded-xl bg-sage-100 text-sage-600 flex items-center justify-center">
-          <i data-lucide="user-check" class="w-5 h-5"></i>
-        </div>
-        <div>
-          <h2 class="text-lg font-bold text-muji-text">選擇您的登入身分</h2>
-          <p class="text-xs text-muji-subtext">系統會記住您的選擇，之後隨時可於右上角切換</p>
-        </div>
-      </div>
-      <div id="welcomeMemberGrid" class="space-y-2 max-h-72 overflow-y-auto pr-1">
-        <!-- Dynamic member buttons -->
-      </div>
-    </div>
+    <p class="text-muji-text font-semibold tracking-wide">正在連線至天御科技雲端資料庫...</p>
+    <p id="loadingHint" class="text-muji-muted text-xs mt-1.5">驗證安全連線中</p>
   </div>
 
   <!-- ================= 頂部導覽列 ================= -->
   <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-muji-border">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
       <!-- Brand + Live Status -->
-      <div class="flex items-center gap-3">
-        <img src="ty3d logo.png" alt="天御科技有限公司 Logo" class="h-9 w-auto rounded-xl object-contain shrink-0" />
-        <div>
+      <div class="flex items-center gap-3 min-w-0">
+        <img src="ty3d%20logo.png" alt="天御科技有限公司 Logo" class="h-10 w-auto rounded-lg object-contain shrink-0" onerror="this.style.display='none'" />
+        <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <h1 class="font-bold text-muji-text text-base sm:text-lg leading-tight tracking-tight">天御科技有限公司</h1>
+            <h1 class="font-bold text-muji-text text-base sm:text-lg leading-tight tracking-tight truncate">天御科技有限公司</h1>
             <!-- Live Connection Badge -->
-            <span id="connBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/70">
+            <span id="connBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/70 shrink-0">
               <span id="connDot" class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
               <span id="connText">連線中</span>
             </span>
           </div>
-          <p class="text-[11px] text-muji-muted hidden sm:block">天御科技請假與差勤系統</p>
+          <p class="text-[11px] text-muji-muted hidden sm:block truncate">天御科技請假與差勤系統</p>
         </div>
       </div>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden md:flex items-center gap-1 bg-muji-subtle p-1 rounded-2xl border border-muji-border/70">
+      <nav class="hidden md:flex items-center gap-1 bg-muji-subtle p-1 rounded-2xl border border-muji-border/70 shrink-0">
         <button onclick="switchTab('apply')" data-tab="apply" class="nav-btn px-3.5 py-1.5 rounded-xl text-sm font-medium transition">我要請假</button>
         <button onclick="switchTab('records')" data-tab="records" class="nav-btn px-3.5 py-1.5 rounded-xl text-sm font-medium transition">我的紀錄</button>
         <button onclick="switchTab('calendar')" data-tab="calendar" class="nav-btn px-3.5 py-1.5 rounded-xl text-sm font-medium transition">團隊月曆</button>
@@ -161,11 +143,11 @@
         <button onclick="switchTab('team')" data-tab="team" id="navTeamDesk" class="nav-btn hidden px-3.5 py-1.5 rounded-xl text-sm font-medium transition">團隊設定</button>
       </nav>
 
-      <!-- Top-bar User Switcher -->
-      <button onclick="openUserSwitcher()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-muji-subtle hover:bg-muji-border/60 border border-muji-border transition text-left shrink-0">
+      <!-- Top-right User Switcher -->
+      <button onclick="openUserSwitcher()" class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-muji-subtle hover:bg-muji-border/70 border border-muji-border transition text-left shrink-0">
         <div id="headerAvatar" class="w-7 h-7 rounded-full bg-sage-500 text-white text-xs font-bold flex items-center justify-center">?</div>
         <div class="hidden sm:block leading-tight">
-          <div id="headerUserName" class="text-xs font-semibold text-muji-text">未選擇</div>
+          <div id="headerUserName" class="text-xs font-semibold text-muji-text">載入中</div>
           <div id="headerUserRole" class="text-[10px] text-sage-600 font-medium">-</div>
         </div>
         <i data-lucide="chevrons-up-down" class="w-3.5 h-3.5 text-muji-muted"></i>
@@ -207,25 +189,25 @@
       <div class="bg-white rounded-2xl p-5 border border-muji-border shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-medium text-muji-subtext">待審核假單</span>
-          <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><i data-lucide="clock" class="w-4 h-4"></i></span>
+          <span class="w-8 h-8 rounded-xl bg-terra-50 text-terra-500 flex items-center justify-center"><i data-lucide="clock" class="w-4 h-4"></i></span>
         </div>
         <div class="flex items-baseline gap-1.5">
           <span id="statPendingCount" class="text-3xl font-bold text-muji-text">0</span>
           <span class="text-xs text-muji-subtext">件</span>
         </div>
-        <p class="text-[11px] text-muji-muted mt-1.5">送出後即時通知主管簽核</p>
+        <p class="text-[11px] text-muji-muted mt-1.5">送出後即時同步給主管簽核</p>
       </div>
     </section>
 
     <!-- ================= TAB 1: 我要請假 ================= -->
     <section id="tab-apply" class="tab-panel fade-in">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 左側：請假申請表單 -->
+        <!-- 左側：請假表單 -->
         <div class="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
           <div class="flex items-center justify-between mb-6">
             <div>
               <h2 class="text-lg font-bold text-muji-text">填寫請假申請</h2>
-              <p class="text-xs text-muji-subtext mt-0.5">填寫完成後即時同步至雲端，主管可立即簽核</p>
+              <p class="text-xs text-muji-subtext mt-0.5">送出後將即時同步至雲端，由主管線上簽核</p>
             </div>
             <span class="px-3 py-1 rounded-full bg-sage-50 text-sage-700 text-xs font-medium">1 天 = 8 小時</span>
           </div>
@@ -234,7 +216,7 @@
             <!-- 假別 -->
             <div>
               <label class="block text-sm font-medium text-muji-text mb-2">假別 <span class="text-terra-500">*</span></label>
-              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              <div class="grid grid-cols-3 sm:grid-cols-7 gap-2">
                 <label class="cursor-pointer">
                   <input type="radio" name="leaveType" value="特休" checked class="peer sr-only" />
                   <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">特休</div>
@@ -252,8 +234,12 @@
                   <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">公假</div>
                 </label>
                 <label class="cursor-pointer">
-                  <input type="radio" name="leaveType" value="補休" class="peer sr-only" />
-                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">補休</div>
+                  <input type="radio" name="leaveType" value="婚假" class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">婚假</div>
+                </label>
+                <label class="cursor-pointer">
+                  <input type="radio" name="leaveType" value="喪假" class="peer sr-only" />
+                  <div class="text-center py-2.5 px-2 rounded-xl border border-muji-border text-sm font-medium text-muji-subtext peer-checked:border-sage-500 peer-checked:bg-sage-50 peer-checked:text-sage-700 transition">喪假</div>
                 </label>
                 <label class="cursor-pointer">
                   <input type="radio" name="leaveType" value="其他" class="peer sr-only" />
@@ -305,7 +291,7 @@
             <!-- 請假事由 -->
             <div>
               <label class="block text-sm font-medium text-muji-text mb-1.5">請假事由與交接說明 <span class="text-terra-500">*</span></label>
-              <textarea id="leaveReason" rows="3" required placeholder="請簡述請假原因，或備註需請代理人協助的事項..." class="w-full px-4 py-3 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition resize-none"></textarea>
+              <textarea id="leaveReason" rows="3" required placeholder="請簡述請假原因，或備註需請代理人協助處理的事項..." class="w-full px-4 py-3 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 transition resize-none"></textarea>
             </div>
 
             <div class="pt-2 flex items-center justify-end gap-3">
@@ -392,7 +378,7 @@
       </div>
     </section>
 
-    <!-- ================= TAB 4: 主管簽核 ================= -->
+    <!-- ================= TAB 4: 主管簽核 (主管限定) ================= -->
     <section id="tab-approval" class="tab-panel hidden fade-in space-y-6">
       <!-- 待審核區塊 -->
       <div class="bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
@@ -401,7 +387,7 @@
             <h2 class="text-lg font-bold text-muji-text">待審核假單</h2>
             <p class="text-xs text-muji-subtext mt-0.5">填寫選填備註後，一鍵核准或駁回同仁申請</p>
           </div>
-          <span id="pendingHeaderCount" class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold">0 件待處理</span>
+          <span id="pendingHeaderCount" class="px-3 py-1 rounded-full bg-terra-50 text-terra-600 text-xs font-semibold">0 件待處理</span>
         </div>
         <div id="pendingApprovalList" class="space-y-3"></div>
       </div>
@@ -423,7 +409,7 @@
             </select>
             <button onclick="exportCSV()" class="px-4 py-2 rounded-xl bg-muji-text hover:bg-muji-subtext text-white text-sm font-medium transition flex items-center gap-2 shadow-sm">
               <i data-lucide="download" class="w-4 h-4"></i>
-              匯出 Excel 報表
+              匯出 CSV 報表
             </button>
           </div>
         </div>
@@ -431,8 +417,9 @@
       </div>
     </section>
 
-    <!-- ================= TAB 5: 團隊設定 ================= -->
-    <section id="tab-team" class="tab-panel hidden fade-in">
+    <!-- ================= TAB 5: 團隊設定 (主管限定) ================= -->
+    <section id="tab-team" class="tab-panel hidden fade-in space-y-6">
+      <!-- 團隊成員名單 -->
       <div class="bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
@@ -459,6 +446,28 @@
             <tbody id="teamTableBody" class="divide-y divide-muji-border/60 text-sm"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- 主管密碼設定卡片 -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-muji-border shadow-sm">
+        <div class="flex items-start gap-3 mb-5">
+          <div class="w-10 h-10 rounded-xl bg-sage-50 text-sage-600 flex items-center justify-center shrink-0">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-muji-text">主管密碼設定</h2>
+            <p class="text-xs text-muji-subtext mt-0.5">切換至「主管」身分時須輸入此密碼，預設密碼為 <code class="bg-muji-subtle px-1.5 py-0.5 rounded font-mono text-muji-text">8888</code></p>
+          </div>
+        </div>
+        <form id="pinSettingsForm" class="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 max-w-lg">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-muji-subtext mb-1.5">設定新主管密碼（建議 4–8 位數字或英數）</label>
+            <input type="password" id="newManagerPinInput" required minlength="4" maxlength="20" placeholder="輸入新密碼..." class="w-full px-4 py-2.5 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 text-sm" />
+          </div>
+          <button type="submit" id="savePinBtn" class="px-5 py-2.5 rounded-xl bg-muji-text hover:bg-muji-subtext text-white text-sm font-medium shadow-sm transition shrink-0">
+            更新密碼
+          </button>
+        </form>
       </div>
     </section>
 
@@ -493,10 +502,41 @@
   <div id="userSwitchModal" class="hidden fixed inset-0 z-50 bg-muji-text/40 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-xl border border-muji-border fade-in">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-base font-bold text-muji-text">切換登入成員</h3>
+        <div>
+          <h3 class="text-base font-bold text-muji-text">切換登入成員</h3>
+          <p class="text-[11px] text-muji-muted mt-0.5">切換至主管身分需輸入主管密碼</p>
+        </div>
         <button onclick="closeModal('userSwitchModal')" class="p-1.5 rounded-xl text-muji-muted hover:bg-muji-subtle"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
       <div id="userSwitchList" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: 主管密碼驗證 ================= -->
+  <div id="pinVerifyModal" class="hidden fixed inset-0 z-50 bg-muji-text/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-xl border border-muji-border fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-sage-50 text-sage-600 flex items-center justify-center">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-muji-text">請輸入主管密碼</h3>
+            <p id="pinVerifyTargetName" class="text-xs text-muji-subtext">驗證身分以解鎖簽核與設定功能</p>
+          </div>
+        </div>
+        <button onclick="closeModal('pinVerifyModal')" class="p-1.5 rounded-xl text-muji-muted hover:bg-muji-subtle"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="pinVerifyForm" class="space-y-4">
+        <div>
+          <input type="password" id="pinVerifyInput" required autocomplete="off" placeholder="請輸入密碼..." class="w-full px-4 py-3 rounded-xl border border-muji-border bg-muji-bg/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sage-500/30 focus:border-sage-500 text-center text-lg tracking-widest font-semibold" />
+          <p id="pinVerifyError" class="hidden text-xs text-terra-600 font-medium mt-2 text-center">密碼錯誤，請再試一次</p>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeModal('pinVerifyModal')" class="px-4 py-2 rounded-xl text-sm font-medium text-muji-subtext hover:bg-muji-subtle transition">取消</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sage-500 hover:bg-sage-600 text-white text-sm font-medium shadow-sm transition">解鎖進入</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -567,7 +607,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // ---------------- 使用者專屬 Firebase 設定 ----------------
     const firebaseConfig = {
@@ -586,12 +626,15 @@
 
     const membersCol = collection(db, "members");
     const leavesCol = collection(db, "leaves");
+    const securityDocRef = doc(db, "settings", "security");
 
     // ---------------- 全域狀態 ----------------
-    const STORAGE_MEMBER_KEY = "ty3d_active_member_id";
     let members = [];
     let leaves = [];
     let activeMember = null;
+    let managerPin = "8888";          // 預設主管密碼，會與 Firestore settings/security 同步
+    let isManagerUnlocked = false;    // 本次瀏覽階段是否已解鎖主管權限
+    let pendingManagerTarget = null;  // 等待輸入密碼驗證的主管物件
     let currentTab = "apply";
     let calDate = new Date();
     let isSeeding = false;
@@ -605,7 +648,7 @@
       const text = document.getElementById("connText");
       text.textContent = label;
 
-      badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border";
+      badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0";
       if (state === "online") {
         badge.classList.add("bg-sage-50", "text-sage-700", "border-sage-100");
         dot.className = "w-1.5 h-1.5 rounded-full bg-sage-500";
@@ -716,7 +759,7 @@
         for (const m of defaults) {
           await addDoc(membersCol, m);
         }
-        showToast("已自動建立 5 位預設團隊成員（可於團隊設定修改）");
+        showToast("已自動建立 5 位預設團隊成員");
       } catch (err) {
         console.error("Seed error:", err);
       } finally {
@@ -725,6 +768,18 @@
     }
 
     function subscribeCollections() {
+      // 監聽主管密碼設定 (settings/security)
+      onSnapshot(securityDocRef, (snap) => {
+        if (snap.exists() && snap.data().managerPin) {
+          managerPin = String(snap.data().managerPin);
+        } else {
+          managerPin = "8888";
+        }
+      }, (err) => {
+        console.warn("Security doc read warning:", err);
+      });
+
+      // 監聽團隊成員
       onSnapshot(membersCol, async (snap) => {
         if (snap.empty && !isSeeding) {
           await seedDefaultMembers();
@@ -744,6 +799,7 @@
         );
       });
 
+      // 監聽請假紀錄
       onSnapshot(leavesCol, (snap) => {
         leaves = snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
@@ -767,74 +823,133 @@
       document.getElementById("errorBanner").classList.add("hidden");
       setConnectionStatus("online", "雲端同步中");
 
-      // 從 localStorage 還原使用者
-      const savedId = localStorage.getItem(STORAGE_MEMBER_KEY);
-      const found = members.find(m => m.id === savedId);
-      if (found) {
-        activeMember = found;
-        document.getElementById("welcomeModal").classList.add("hidden");
-        renderAll();
-      } else {
-        activeMember = null;
-        openWelcomeModal();
+      // 若已有選取的成員，同步更新其最新資料；否則預設選取第一位「員工」（確保不會直接進入主管畫面）
+      if (activeMember) {
+        const refreshed = members.find(m => m.id === activeMember.id);
+        if (refreshed) {
+          activeMember = refreshed;
+          // 若主管被改為員工，立即鎖定主管權限
+          if (activeMember.role !== "manager") isManagerUnlocked = false;
+        } else {
+          activeMember = null;
+        }
       }
+
+      if (!activeMember && members.length > 0) {
+        const firstEmployee = members.find(m => m.role !== "manager");
+        activeMember = firstEmployee || members[0];
+        isManagerUnlocked = false;
+      }
+
+      renderAll();
     }
 
-    // ---------------- 使用者身分選擇與切換 ----------------
-    function openWelcomeModal() {
-      const grid = document.getElementById("welcomeMemberGrid");
-      grid.innerHTML = members.map(m => `
-        <button onclick="selectActiveMember('${m.id}')" class="w-full flex items-center justify-between p-3.5 rounded-2xl border border-muji-border hover:border-sage-500 hover:bg-sage-50/60 transition text-left">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full ${m.role === 'manager' ? 'bg-sage-500 text-white' : 'bg-muji-subtle text-muji-text'} text-sm font-bold flex items-center justify-center">${escapeHtml(m.name.slice(0, 1))}</div>
-            <div>
-              <div class="text-sm font-bold text-muji-text">${escapeHtml(m.name)}</div>
-              <div class="text-xs text-muji-subtext">年度特休 ${m.annualQuota} 天</div>
-            </div>
-          </div>
-          <span class="px-2.5 py-1 rounded-full text-xs font-medium ${m.role === 'manager' ? 'bg-sage-100 text-sage-700' : 'bg-muji-subtle text-muji-subtext'}">${m.role === 'manager' ? '主管' : '員工'}</span>
-        </button>
-      `).join("");
-      document.getElementById("welcomeModal").classList.remove("hidden");
-    }
-
+    // ---------------- 使用者切換與主管密碼鎖邏輯 ----------------
     window.openUserSwitcher = () => {
       const list = document.getElementById("userSwitchList");
-      list.innerHTML = members.map(m => `
-        <button onclick="selectActiveMember('${m.id}')" class="w-full flex items-center justify-between p-3 rounded-2xl border ${activeMember?.id === m.id ? 'border-sage-500 bg-sage-50/70' : 'border-muji-border hover:bg-muji-subtle/60'} transition text-left">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-full ${m.role === 'manager' ? 'bg-sage-500 text-white' : 'bg-muji-subtle text-muji-text'} text-xs font-bold flex items-center justify-center">${escapeHtml(m.name.slice(0, 1))}</div>
-            <div>
-              <div class="text-sm font-bold text-muji-text">${escapeHtml(m.name)}</div>
-              <div class="text-[11px] text-muji-subtext">${m.role === 'manager' ? '主管（含簽核與設定權限）' : '一般員工'}</div>
+      list.innerHTML = members.map(m => {
+        const isMgr = m.role === "manager";
+        const isActive = activeMember?.id === m.id;
+        return `
+          <button onclick="attemptSwitchMember('${m.id}')" class="w-full flex items-center justify-between p-3 rounded-2xl border ${isActive ? 'border-sage-500 bg-sage-50/70' : 'border-muji-border hover:bg-muji-subtle/60'} transition text-left">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-full ${isMgr ? 'bg-sage-500 text-white' : 'bg-muji-subtle text-muji-text'} text-xs font-bold flex items-center justify-center shrink-0">${escapeHtml(m.name.slice(0, 1))}</div>
+              <div class="min-w-0">
+                <div class="text-sm font-bold text-muji-text flex items-center gap-1.5">
+                  <span class="truncate">${escapeHtml(m.name)}</span>
+                  ${isMgr ? '<i data-lucide="lock" class="w-3.5 h-3.5 text-sage-600 shrink-0" title="需要主管密碼"></i>' : ''}
+                </div>
+                <div class="text-[11px] text-muji-subtext">${isMgr ? '主管（含簽核與設定權限）' : '一般員工'}</div>
+              </div>
             </div>
-          </div>
-          ${activeMember?.id === m.id ? '<i data-lucide="check" class="w-4 h-4 text-sage-600"></i>' : ''}
-        </button>
-      `).join("");
+            ${isActive ? '<i data-lucide="check" class="w-4 h-4 text-sage-600 shrink-0"></i>' : ''}
+          </button>
+        `;
+      }).join("");
       document.getElementById("userSwitchModal").classList.remove("hidden");
       lucide.createIcons();
     };
 
-    window.selectActiveMember = (id) => {
+    window.attemptSwitchMember = (id) => {
       const target = members.find(m => m.id === id);
       if (!target) return;
+
+      // 若目標為主管且目前尚未解鎖，跳出密碼驗證視窗
+      if (target.role === "manager" && !isManagerUnlocked) {
+        pendingManagerTarget = target;
+        closeModal("userSwitchModal");
+        document.getElementById("pinVerifyTargetName").textContent = `正在切換至主管「${target.name}」`;
+        document.getElementById("pinVerifyInput").value = "";
+        document.getElementById("pinVerifyError").classList.add("hidden");
+        document.getElementById("pinVerifyModal").classList.remove("hidden");
+        setTimeout(() => document.getElementById("pinVerifyInput").focus(), 50);
+        return;
+      }
+
+      // 切換為一般員工時，立即重新鎖定主管權限
+      if (target.role !== "manager") {
+        isManagerUnlocked = false;
+      }
+
       activeMember = target;
-      localStorage.setItem(STORAGE_MEMBER_KEY, id);
-      closeModal("welcomeModal");
       closeModal("userSwitchModal");
       showToast(`已切換身分：${target.name}`);
       renderAll();
     };
 
+    document.getElementById("pinVerifyForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const inputVal = document.getElementById("pinVerifyInput").value.trim();
+      if (inputVal === managerPin) {
+        isManagerUnlocked = true;
+        if (pendingManagerTarget) {
+          activeMember = pendingManagerTarget;
+          pendingManagerTarget = null;
+        }
+        closeModal("pinVerifyModal");
+        showToast(`驗證成功！歡迎 ${activeMember.name}`);
+        renderAll();
+      } else {
+        document.getElementById("pinVerifyError").classList.remove("hidden");
+        document.getElementById("pinVerifyInput").select();
+      }
+    });
+
+    // 主管修改密碼表單
+    document.getElementById("pinSettingsForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!isManagerUnlocked || activeMember?.role !== "manager") return;
+      const newPin = document.getElementById("newManagerPinInput").value.trim();
+      if (newPin.length < 4) {
+        showToast("密碼長度請至少輸入 4 碼", "error");
+        return;
+      }
+      const btn = document.getElementById("savePinBtn");
+      btn.disabled = true;
+      try {
+        await setDoc(securityDocRef, { managerPin: newPin, updatedAt: Date.now() }, { merge: true });
+        document.getElementById("newManagerPinInput").value = "";
+        showToast("主管密碼已更新並同步至雲端！");
+      } catch (err) {
+        console.error(err);
+        showToast("密碼更新失敗，請稍後再試", "error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
     // ---------------- 分頁切換 ----------------
     window.switchTab = (tab) => {
+      const canAccessManager = activeMember?.role === "manager" && isManagerUnlocked;
+      if ((tab === "approval" || tab === "team") && !canAccessManager) {
+        tab = "apply";
+      }
+
       currentTab = tab;
       document.querySelectorAll(".tab-panel").forEach(el => el.classList.add("hidden"));
       const panel = document.getElementById(`tab-${tab}`);
       if (panel) panel.classList.remove("hidden");
 
-      // 儀表板卡片顯示於「我要請假」與「我的紀錄」
       document.getElementById("dashboardCards").classList.toggle("hidden", !(tab === "apply" || tab === "records"));
 
       document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -974,23 +1089,23 @@
     }
 
     function renderHeader() {
-      const isMgr = activeMember.role === "manager";
+      const isMgrActive = activeMember.role === "manager" && isManagerUnlocked;
       document.getElementById("headerAvatar").textContent = activeMember.name.slice(0, 1);
       document.getElementById("headerUserName").textContent = activeMember.name;
-      document.getElementById("headerUserRole").textContent = isMgr ? "主管" : "員工";
+      document.getElementById("headerUserRole").textContent = isMgrActive ? "主管 (已解鎖)" : "員工";
 
       ["navApprovalDesk", "navTeamDesk", "navApprovalMob", "navTeamMob"].forEach(id => {
-        document.getElementById(id).classList.toggle("hidden", !isMgr);
+        document.getElementById(id).classList.toggle("hidden", !isMgrActive);
       });
 
-      if (!isMgr && (currentTab === "approval" || currentTab === "team")) {
+      if (!isMgrActive && (currentTab === "approval" || currentTab === "team")) {
         switchTab("apply");
       }
 
       const pendingCount = leaves.filter(l => l.status === "pending").length;
       const bDesk = document.getElementById("pendingBadgeDesk");
       const bMob = document.getElementById("pendingBadgeMob");
-      if (isMgr && pendingCount > 0) {
+      if (isMgrActive && pendingCount > 0) {
         bDesk.textContent = pendingCount;
         bDesk.classList.remove("hidden");
         bMob.textContent = pendingCount;
@@ -1333,7 +1448,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `團隊請假報表_${monthFilter || formatDate(new Date())}.csv`;
+      a.download = `天御科技請假報表_${monthFilter || formatDate(new Date())}.csv`;
       a.click();
       URL.revokeObjectURL(url);
       showToast("Excel CSV 報表已下載");
